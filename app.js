@@ -24,41 +24,59 @@ new Vue({
     },
     methods: {
         initMap() {
-            const long = null
-            const lat = null
             fetch('http://api.open-notify.org/iss-now.json')
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    this.lat = data.iss_position.latitude
-                    long = data.iss_position.longitude
+                    const lat = data.iss_position.latitude
+                    const long = data.iss_position.longitude
+                    this.map = L.map('map').setView([lat, long], 5);
+                    this.tileLayer = L.tileLayer(
+                        'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', {
+                            maxZoom: 18,
+                            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; ISS Finder',
+                        }
+                    );
+                    this.tileLayer.addTo(this.map);
+                    this.lat = lat;
+                    this.long = long;
                 });
 
-            this.map = L.map('map').setView([lat, long], 8);
-            this.tileLayer = L.tileLayer(
-                'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', {
-                    maxZoom: 18,
-                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attribution">CARTO</a>',
-                }
-            );
-            this.tileLayer.addTo(this.map);
+
         },
         initLayers() {
             this.layers.forEach((layer) => {
                 // Initialize the layer
                 const markerFeatures = layer.features.filter(feature => feature.type === 'marker');
                 const polygonFeatures = layer.features.filter(feature => feature.type === 'polygon');
-                markerFeatures.forEach((feature) => {
-                    feature.leafletObject = L.marker(feature.coords)
-                        .bindPopup(feature.name);
-                });
-                polygonFeatures.forEach((feature) => {
-                    feature.leafletObject = L.polygon(feature.coords)
-                        .bindPopup(feature.name);
-                });
+                fetch('http://api.open-notify.org/iss-now.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        const lat = data.iss_position.latitude
+                        const long = data.iss_position.longitude
+                        let cords = []
+                        cords.push(lat)
+                        cords.push(long)
+                        markerFeatures.forEach((feature) => {
+                            feature.leafletObject = L.marker(cords)
+                                .bindPopup(feature.name);
+                        });
+                        polygonFeatures.forEach((feature) => {
+                            feature.leafletObject = L.polygon(cords)
+                                .bindPopup(feature.name);
+                        });
+                    })
+                    .catch(err => {
+                        console.log("Error while fetching the exact location", err)
+                    })
+
             });
         },
+
         layerChanged(layerId, active) {
+            console.log('thisMap', this.map)
+            console.log('layer id', layerId)
+            console.log('active', active)
             const layer = this.layers.find(layer => layer.id === layerId);
             layer.features.forEach((feature) => {
                 /* Show or hide the feature depending on the active argument */
@@ -68,16 +86,6 @@ new Vue({
                     feature.leafletObject.removeFrom(this.map);
                 }
             });
-        },
-        // getissLocation() {
-        //     console.log('fetching iss location');
-        //     fetch('http://api.open-notify.org/iss-now.json')
-        //         .then(response => response.json())
-        //         .then(data => {
-        //             console.log(data);
-        //             this.lat = data.iss_position.latitude
-        //             this.long = data.iss_position.longitude
-        //         });
-        // }
+        }
     }
 });
