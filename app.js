@@ -30,7 +30,7 @@ new Vue({
                     console.log(data);
                     const lat = data.iss_position.latitude
                     const long = data.iss_position.longitude
-                    this.map = L.map('map').setView([lat, long], 5);
+                    this.map = L.map('map').setView([lat, long], 3);
                     this.tileLayer = L.tileLayer(
                         'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', {
                             maxZoom: 18,
